@@ -10,6 +10,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 5010;
 let students = [...studentsSeed];
 let databaseConnected = false;
+let connectionPromise;
 
 const studentSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -24,6 +25,32 @@ const studentSchema = new mongoose.Schema({
 }, { versionKey: false, id: false });
 
 const Student = mongoose.model('Student', studentSchema);
+
+async function connectToDatabase() {
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is required to use the deployed API');
+  }
+
+  if (databaseConnected) {
+    return;
+  }
+
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(process.env.MONGODB_URI)
+      .then(async () => {
+        if (await Student.countDocuments() === 0) {
+          await Student.insertMany(studentsSeed);
+        }
+        databaseConnected = true;
+      })
+      .catch((error) => {
+        connectionPromise = undefined;
+        throw error;
+      });
+  }
+
+  return connectionPromise;
+}
 
 app.use(cors());
 app.use(express.json());
@@ -141,11 +168,7 @@ app.delete('/api/students/:id', async (req, res) => {
 async function startServer() {
   try {
     if (process.env.MONGODB_URI) {
-      await mongoose.connect(process.env.MONGODB_URI);
-      databaseConnected = true;
-      if (await Student.countDocuments() === 0) {
-        await Student.insertMany(studentsSeed);
-      }
+      await connectToDatabase();
       console.log('MongoDB connected successfully');
     } else {
       console.log('MONGODB_URI not set, using in-memory sample data');
@@ -162,4 +185,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, connectToDatabase };
