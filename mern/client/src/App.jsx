@@ -48,8 +48,12 @@ function App() {
   const validateForm = () => {
     const { name, email, age, course, phone } = formData;
 
-    if (!name.trim() || !email.trim() || !course.trim() || !phone.trim()) {
+    if (!name.trim() || !email.trim() || !age.trim() || !course.trim() || !phone.trim()) {
       return 'Please fill in all required fields.';
+    }
+
+    if (Number(age) < 1 || Number(age) > 120) {
+      return 'Please enter a valid age.';
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,7 +93,7 @@ function App() {
     setFormData({
       name: student.name,
       email: student.email,
-      age: student.age,
+      age: String(student.age ?? ''),
       course: student.course,
       year: student.year,
       grade: student.grade,
@@ -156,12 +160,15 @@ function App() {
                   <input type="email" name="email" value={formData.email} onChange={handleChange} />
                 </label>
                 <label>
-                  Age
-                  <input type="text" name="age" value={formData.age} onChange={handleChange} />
-                </label>
-                <label>
                   Course
                   <input type="text" name="course" value={formData.course} onChange={handleChange} />
+                </label>
+              </div>
+
+              <div className="field-group">
+                <label>
+                  Age
+                  <input type="number" name="age" min="1" max="120" value={formData.age} onChange={handleChange} />
                 </label>
               </div>
 
@@ -224,7 +231,6 @@ function App() {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Age</th>
                 <th>Course</th>
                 <th>Year</th>
                 <th>Grade</th>
@@ -237,7 +243,6 @@ function App() {
                 <tr key={student.id}>
                   <td>{student.name}</td>
                   <td>{student.email}</td>
-                  <td>{student.age}</td>
                   <td>{student.course}</td>
                   <td>{student.year}</td>
                   <td>{student.grade}</td>

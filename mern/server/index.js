@@ -1,48 +1,79 @@
 const express = require('express');
 const cors = require('cors');
+const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-require('dotenv').config();
- 
+const { studentsSeed } = require('./data/sampleData');
+
+dotenv.config();
+
 const app = express();
- 
+const PORT = Number(process.env.PORT) || 5010;
+let students = [...studentsSeed];
 
+app.use(cors());
 app.use(express.json());
- 
 
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173', 
-  'http://localhost:3000'  
-].filter(Boolean);
- 
-app.use(cors({
-  origin: function (origin, callback) {
-   
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', message: 'Server is running.' });
+});
+
+app.get('/api/dashboard', (_req, res) => {
+  res.json({ students });
+});
+
+app.get('/api/students', (_req, res) => {
+  res.json(students);
+});
+
+app.post('/api/students', (req, res) => {
+  const student = {
+    id: Date.now(),
+    ...req.body
+  };
+
+  students.unshift(student);
+  res.status(201).json(student);
+});
+
+app.put('/api/students/:id', (req, res) => {
+  const { id } = req.params;
+  const studentIndex = students.findIndex((item) => item.id === Number(id));
+
+  if (studentIndex === -1) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  students[studentIndex] = { ...students[studentIndex], ...req.body };
+  res.json(students[studentIndex]);
+});
+
+app.delete('/api/students/:id', (req, res) => {
+  const { id } = req.params;
+  const studentIndex = students.findIndex((item) => item.id === Number(id));
+
+  if (studentIndex === -1) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  const [removed] = students.splice(studentIndex, 1);
+  res.json(removed);
+});
+
+async function startServer() {
+  try {
+    if (process.env.MONGODB_URI) {
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('MongoDB connected successfully');
     } else {
-      return callback(new Error('CORS Not Allowed for this origin'));
+      console.log('MONGODB_URI not set, using in-memory sample data');
     }
-  },
-  credentials: true
-}));
- 
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message);
+  }
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected Successfully'))
-  .catch((err) => console.error('MongoDB Connection Error:', err));
- 
+  app.listen(PORT, () => {
+    console.log(`API running on http://localhost:${PORT}`);
+  });
+}
 
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Backend is running smoothly' });
-});
-
-app.get('/api/data', (req, res) => {
-  res.json({ message: 'Hello mula sa Render Backend!' });
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+startServer();
