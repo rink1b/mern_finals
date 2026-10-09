@@ -12,6 +12,10 @@ const emptyForm = {
   phone: ''
 };
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || ''
+});
+
 function App() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +25,7 @@ function App() {
 
   const fetchDashboard = async () => {
     try {
-      const response = await axios.get('/api/dashboard');
+      const response = await api.get('/api/dashboard');
       setStudents(response.data.students);
     } catch (error) {
       console.error('Failed to load student data:', error);
@@ -77,9 +81,9 @@ function App() {
 
     try {
       if (editingId) {
-        await axios.put(`/api/students/${editingId}`, formData);
+        await api.put(`/api/students/${editingId}`, formData);
       } else {
-        await axios.post('/api/students', formData);
+        await api.post('/api/students', formData);
       }
       resetForm();
       fetchDashboard();
@@ -104,7 +108,7 @@ function App() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`/api/students/${id}`);
+      await api.delete(`/api/students/${id}`);
       fetchDashboard();
     } catch (error) {
       console.error('Failed to delete student:', error);
